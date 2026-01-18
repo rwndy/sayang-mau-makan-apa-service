@@ -2,32 +2,64 @@ import { openai } from "../config/openai"
 import { AppError } from "../middlewares/error.middleware"
 
 export class AIService {
-  async recommend(category: string, places: any[]) {
-    if (!places || places.length === 0) {
-      throw new AppError("No restaurants found in this area", 404)
-    }
-
-    const prompt = `You are a food recommendation AI. Analyze the restaurants and return ONLY a JSON object.
+  // General mode: Generate 10 food recommendations without location
+  async recommendGeneral(category: string) {
+    const prompt = `You are a food recommendation AI. Generate food recommendations based on category.
 
 Category preference: ${category}
-Restaurants data: ${JSON.stringify(places.slice(0, 50))}
 
-Select the top 5 best restaurants based on:
-- Category relevance
-- Distance from user
-- Assumed popularity
+Generate 10 diverse food recommendations (FOODS, not restaurants) that match this category.
+For each recommendation, suggest a general type of place where it can be found.
 
 Return ONLY this JSON structure (no markdown, no explanation):
 {
   "recommendations": [
     {
-      "food": "recommended dish name",
-      "place": "restaurant name",
-      "reason": "brief reason for recommendation"
+      "food": "specific dish name",
+      "place": "type of place (e.g., Italian Restaurant, Street Vendor, Cafe)",
+      "reason": "brief reason why this food matches the category"
     }
   ]
 }`
 
+    return this.callOpenAI(prompt)
+  }
+
+  // Near Me mode: Generate recommendations based on nearby places
+  async recommendNearMe(category: string, places: any[]) {
+    if (!places || places.length === 0) {
+      throw new AppError("No restaurants found in this area", 404)
+    }
+
+    const prompt = `You are a food recommendation AI. Analyze nearby restaurants and recommend FOODS.
+
+Category preference: ${category}
+Nearby restaurants: ${JSON.stringify(places.slice(0, 50))}
+
+Generate 10 food recommendations based on the nearby restaurants.
+Focus on FOODS (dishes), not just the restaurant names.
+Consider:
+- Category relevance
+- Distance from user
+- Restaurant cuisine type
+- Variety of options
+
+Return ONLY this JSON structure (no markdown, no explanation):
+{
+  "recommendations": [
+    {
+      "food": "specific dish name",
+      "place": "restaurant name from the data",
+      "reason": "brief reason for this recommendation"
+    }
+  ]
+}`
+
+    return this.callOpenAI(prompt)
+  }
+
+  // Common method to call OpenAI API
+  private async callOpenAI(prompt: string) {
     try {
       const res = await openai.chat.completions.create({
         model: "gpt-4o-mini",

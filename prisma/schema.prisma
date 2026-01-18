@@ -9,8 +9,8 @@ datasource db {
 
 model RecommendationHistory {
   id        String   @id @default(uuid())
-  lat       Float
-  lon       Float
+  lat       Float?
+  lon       Float?
   category  String
   result    Json
   createdAt DateTime @default(now())

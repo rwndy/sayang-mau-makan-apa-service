@@ -3,12 +3,35 @@ import type { ZodSchema } from "zod"
 
 import { z } from "zod"
 
-export const recommendSchema = z.object({
-  lat: z.number({ message: "Latitude must be a number" }).min(-90).max(90),
-  lon: z.number({ message: "Longitude must be a number" }).min(-180).max(180),
-  category: z.string().min(1, "Category is required"),
-  radius: z.number().min(500).max(10000).optional().default(3000),
-})
+export const recommendSchema = z
+  .object({
+    category: z.string().min(1, "Category is required"),
+    mode: z.enum(["nearMe"]).optional(),
+    lat: z
+      .number({ message: "Latitude must be a number" })
+      .min(-90)
+      .max(90)
+      .optional(),
+    lon: z
+      .number({ message: "Longitude must be a number" })
+      .min(-180)
+      .max(180)
+      .optional(),
+    radius: z.number().min(500).max(10000).optional().default(3000),
+  })
+  .refine(
+    (data) => {
+      // If mode is nearMe, lat and lon must be provided
+      if (data.mode === "nearMe") {
+        return data.lat !== undefined && data.lon !== undefined
+      }
+      return true
+    },
+    {
+      message: "lat and lon are required when mode is 'nearMe'",
+      path: ["mode"],
+    },
+  )
 
 export type RecommendInput = z.infer<typeof recommendSchema>
 

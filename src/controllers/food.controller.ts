@@ -7,26 +7,42 @@ import { successResponse } from "../utils/response.util"
 
 export class FoodController {
   async recommend(req: Request, res: Response) {
-    const { lat, lon, category, radius } = req.body
+    const { category, mode, lat, lon, radius } = req.body
 
-    if (!lat || !lon) {
-      throw new AppError("Location required")
-    }
-
-    const osm = new OSMService()
     const ai = new AIService()
     const history = new HistoryService()
 
-    const places = await osm.getNearby(lat, lon, radius)
+    let result: any
 
-    const result = await ai.recommend(category, places)
+    // Near Me mode: use location-based recommendations
+    if (mode === "nearMe") {
+      if (!lat || !lon) {
+        throw new AppError("Location required for nearMe mode")
+      }
 
-    await history.save({
-      lat,
-      lon,
-      category,
-      result,
-    })
+      const osm = new OSMService()
+      const places = await osm.getNearby(lat, lon, radius)
+      result = await ai.recommendNearMe(category, places)
+
+      // Save to history with location
+      await history.save({
+        lat,
+        lon,
+        category,
+        result,
+      })
+    } else {
+      // General mode: generate food recommendations without location
+      result = await ai.recommendGeneral(category)
+
+      // Save to history without location
+      await history.save({
+        lat: null,
+        lon: null,
+        category,
+        result,
+      })
+    }
 
     return successResponse(res, result)
   }

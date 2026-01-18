@@ -10,8 +10,9 @@ const app = express()
 app.use(express.json())
 app.use(timeoutMiddleware(50000)) // 50 seconds global timeout
 
-app.use("/food", foodRoute)
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+// API v1 routes
+app.use("/api/v1/food", foodRoute)
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.use(errorMiddleware)
 
