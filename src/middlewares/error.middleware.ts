@@ -32,8 +32,9 @@ export function errorMiddleware(
 
   if (err instanceof ZodError) {
     res.status(400).json({
-      success: false,
+      status: 400,
       message: "Validation Error",
+      data: null,
       errors: err.errors.map((e) => ({
         field: e.path.join("."),
         message: e.message,
@@ -45,8 +46,9 @@ export function errorMiddleware(
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     const statusCode = getPrismaErrorStatus(err.code)
     res.status(statusCode).json({
-      success: false,
+      status: statusCode,
       message: getPrismaErrorMessage(err.code),
+      data: null,
       code: err.code,
     })
     return
@@ -54,18 +56,20 @@ export function errorMiddleware(
 
   if (err instanceof AppError) {
     res.status(err.status).json({
-      success: false,
+      status: err.status,
       message: err.message,
+      data: null,
     })
     return
   }
 
   res.status(500).json({
-    success: false,
+    status: 500,
     message:
       process.env.NODE_ENV === "production"
         ? "Internal Server Error"
         : err.message,
+    data: null,
   })
 }
 

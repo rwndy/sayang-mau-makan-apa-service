@@ -3,6 +3,7 @@ import { AppError } from "../middlewares/error.middleware"
 import { AIService } from "../services/ai.service"
 import { HistoryService } from "../services/history.service"
 import { OSMService } from "../services/osm.service"
+import { successResponse } from "../utils/response.util"
 
 export class FoodController {
   async recommend(req: Request, res: Response) {
@@ -27,11 +28,12 @@ export class FoodController {
       result,
     })
 
-    res.json(result)
+    return successResponse(res, result)
   }
 
   async histories(req: Request, res: Response) {
     const history = new HistoryService()
-    res.json(await history.list())
+    const data = await history.list()
+    return successResponse(res, data)
   }
 }

@@ -8,6 +8,10 @@ An AI-powered food recommendation service that helps you decide what to eat base
 - **Category Filtering**: Filter recommendations by food category (e.g., Italian, Chinese, Fast Food)
 - **AI-Powered Suggestions**: Utilizes OpenAI GPT-4o-mini to provide intelligent recommendations based on relevance, distance, and popularity
 - **Recommendation History**: Track and retrieve past recommendations
+- **Standardized API Responses**: Consistent response structure for all endpoints with proper HTTP status codes
+- **Comprehensive Error Handling**: Robust error handling with detailed error messages and proper status codes
+- **Request Timeout Protection**: Global timeout middleware to prevent hanging requests
+- **Environment Validation**: Validates required environment variables on startup
 - **RESTful API**: Clean and well-documented API endpoints
 - **Swagger Documentation**: Interactive API documentation available at `/docs`
 - **Docker Support**: Easy deployment with Docker and Docker Compose
@@ -154,18 +158,22 @@ Get AI-powered food recommendations based on location and category.
 **Response:**
 ```json
 {
-  "recommendations": [
-    {
-      "food": "Margherita Pizza",
-      "place": "Antonio's Italian Restaurant",
-      "reason": "Authentic Italian cuisine with excellent reviews, located just 200m away"
-    },
-    {
-      "food": "Pasta Carbonara",
-      "place": "La Bella Vita",
-      "reason": "Popular spot known for traditional pasta dishes, 350m distance"
-    }
-  ]
+  "status": 200,
+  "message": "success",
+  "data": {
+    "recommendations": [
+      {
+        "food": "Margherita Pizza",
+        "place": "Antonio's Italian Restaurant",
+        "reason": "Authentic Italian cuisine with excellent reviews, located just 200m away"
+      },
+      {
+        "food": "Pasta Carbonara",
+        "place": "La Bella Vita",
+        "reason": "Popular spot known for traditional pasta dishes, 350m distance"
+      }
+    ]
+  }
 }
 ```
 
@@ -177,18 +185,22 @@ Retrieve all past food recommendations.
 
 **Response:**
 ```json
-[
-  {
-    "id": "uuid",
-    "lat": 40.7128,
-    "lon": -74.0060,
-    "category": "Italian",
-    "result": {
-      "recommendations": [...]
-    },
-    "createdAt": "2024-01-18T10:30:00Z"
-  }
-]
+{
+  "status": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": "uuid",
+      "lat": 40.7128,
+      "lon": -74.0060,
+      "category": "Italian",
+      "result": {
+        "recommendations": [...]
+      },
+      "createdAt": "2024-01-18T10:30:00Z"
+    }
+  ]
+}
 ```
 
 ## Database Schema
@@ -243,7 +255,7 @@ sayang-mau-makan-apa-be/
 │   └── schema.prisma          # Database schema
 ├── src/
 │   ├── config/
-│   │   ├── env.ts            # Environment configuration
+│   │   ├── env.ts            # Environment configuration & validation
 │   │   ├── openai.ts         # OpenAI client setup
 │   │   └── prisma.ts         # Prisma client setup
 │   ├── controllers/
@@ -252,6 +264,7 @@ sayang-mau-makan-apa-be/
 │   │   └── swagger.ts        # Swagger/OpenAPI documentation
 │   ├── middlewares/
 │   │   ├── error.middleware.ts    # Error handling
+│   │   ├── timeout.middleware.ts  # Request timeout handling
 │   │   └── validate.middleware.ts # Request validation
 │   ├── routes/
 │   │   ├── food.route.ts     # Food routes
@@ -260,6 +273,8 @@ sayang-mau-makan-apa-be/
 │   │   ├── ai.service.ts     # OpenAI integration
 │   │   ├── history.service.ts # Database operations
 │   │   └── osm.service.ts    # OpenStreetMap integration
+│   ├── utils/
+│   │   └── response.util.ts  # Standardized API response helpers
 │   ├── app.ts                # Express app setup
 │   └── server.ts             # Server entry point
 ├── tests/
@@ -307,22 +322,71 @@ Tests are located in the `tests/` directory and use Jest with Supertest for HTTP
 5. Commit your changes (pre-commit hooks will run automatically)
 6. Push and create a pull request
 
-## Error Handling
+## Response Structure
 
-The API uses a centralized error handling middleware that returns errors in a consistent format:
+All API responses follow a standardized structure for consistency:
 
+### Success Response
 ```json
 {
-  "error": {
-    "message": "Error description",
-    "status": 400
-  }
+  "status": 200,
+  "message": "success",
+  "data": { /* actual response data */ }
 }
 ```
 
-Common error codes:
+### Error Response
+```json
+{
+  "status": 400,
+  "message": "Error description",
+  "data": null
+}
+```
+
+### HTTP Status Codes
+- `200` - Success
 - `400` - Bad Request (missing or invalid parameters)
+- `404` - Not Found (no restaurants or records found)
+- `429` - Rate Limit Exceeded
 - `500` - Internal Server Error
+- `502` - Bad Gateway (external service error)
+- `504` - Gateway Timeout
+
+### Error Examples
+
+**Validation Error:**
+```json
+{
+  "status": 400,
+  "message": "Validation Error",
+  "data": null,
+  "errors": [
+    {
+      "field": "lat",
+      "message": "Required"
+    }
+  ]
+}
+```
+
+**Location Required:**
+```json
+{
+  "status": 400,
+  "message": "Location required",
+  "data": null
+}
+```
+
+**No Restaurants Found:**
+```json
+{
+  "status": 404,
+  "message": "No restaurants found in this area. Try increasing the radius.",
+  "data": null
+}
+```
 
 ## Contributing
 
